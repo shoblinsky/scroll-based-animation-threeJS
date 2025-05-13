@@ -4,6 +4,8 @@ import GUI from 'lil-gui'
 import vertexShader from './shaders/galaxy/vertex.glsl';
 import fragmentShader from './shaders/galaxy/fragment.glsl';
 
+import gsap from 'gsap'
+
 // Debug
 const gui = new GUI()
 
@@ -25,6 +27,10 @@ parameters.randomnessPower = 3
 parameters.insideColor = '#ff6030'
 parameters.outsideColor = '#1b3984'
 
+
+const primParameters = {
+    materialColor: '#ffeded'
+}
 
 let geometry = null
 let material = null
@@ -118,14 +124,22 @@ const generateGalaxy = () => {
 
 
 
-const GalaxyFolder = gui.addFolder('Folder for galaxy background');
-GalaxyFolder.add(parameters, 'count').min(100).max(1000000).step(100).onFinishChange(generateGalaxy)
-GalaxyFolder.add(parameters, 'radius').min(0.01).max(20).step(0.01).onFinishChange(generateGalaxy)
-GalaxyFolder.add(parameters, 'branches').min(2).max(20).step(1).onFinishChange(generateGalaxy)
-GalaxyFolder.add(parameters, 'randomness').min(0).max(2).step(0.001).onFinishChange(generateGalaxy)
-GalaxyFolder.add(parameters, 'randomnessPower').min(1).max(10).step(0.001).onFinishChange(generateGalaxy)
-GalaxyFolder.addColor(parameters, 'insideColor').onFinishChange(generateGalaxy)
-GalaxyFolder.addColor(parameters, 'outsideColor').onFinishChange(generateGalaxy)
+const galaxyFolder = gui.addFolder('Folder for galaxy background');
+galaxyFolder.add(parameters, 'count').min(100).max(1000000).step(100).onFinishChange(generateGalaxy)
+galaxyFolder.add(parameters, 'radius').min(0.01).max(20).step(0.01).onFinishChange(generateGalaxy)
+galaxyFolder.add(parameters, 'branches').min(2).max(20).step(1).onFinishChange(generateGalaxy)
+galaxyFolder.add(parameters, 'randomness').min(0).max(2).step(0.001).onFinishChange(generateGalaxy)
+galaxyFolder.add(parameters, 'randomnessPower').min(1).max(10).step(0.001).onFinishChange(generateGalaxy)
+galaxyFolder.addColor(parameters, 'insideColor').onFinishChange(generateGalaxy)
+galaxyFolder.addColor(parameters, 'outsideColor').onFinishChange(generateGalaxy)
+
+const primFolder = gui.addFolder('Folder for galaxy background');
+gui
+    .addColor(primParameters, 'materialColor')
+    .onChange(() => {
+        material.color.set(primParameters.materialColor)
+        particlesMaterial.color.set(primParameters.materialColor)
+    })
 
 
 // Sizes
