@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-// import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import GUI from 'lil-gui'
 import vertexShader from './shaders/galaxy/vertex.glsl';
 import fragmentShader from './shaders/galaxy/fragment.glsl';
@@ -15,6 +15,7 @@ const canvas = document.querySelector('canvas.webgl')
 
 // Scene
 const scene = new THREE.Scene()
+const scrollScene = new THREE.Scene()
 
 const parameters = {}
 parameters.count = 200000
@@ -24,12 +25,12 @@ parameters.branches = 3
 parameters.spin = 1
 parameters.randomness = 0.5
 parameters.randomnessPower = 3
-parameters.insideColor = '#ff6030'
-parameters.outsideColor = '#1b3984'
+parameters.insideColor = '#5e372b'
+parameters.outsideColor = '#2d488b'
 
 
 const primParameters = {
-    materialColor: '#ffeded'
+    materialColor: '#060a28'
 }
 
 let geometry = null
@@ -102,6 +103,7 @@ const generateGalaxy = () => {
     material = new THREE.ShaderMaterial({
         blending: THREE.AdditiveBlending,
         depthWrite: false,
+        depthTest: true,
         blending: THREE.AdditiveBlending,
         vertexColors: true,
         uniforms:
@@ -121,6 +123,62 @@ const generateGalaxy = () => {
     points = new THREE.Points(geometry, material)
     scene.add(points)
 }
+// // Texture
+// const textureLoader = new THREE.TextureLoader()
+
+// const gradientTexture = textureLoader.load('textures/gradients/3.jpg')
+// gradientTexture.magFilter = THREE.NearestFilter
+
+
+/**
+ * Objects
+ */
+// Meshes
+// Material
+const meshMaterial = new THREE.MeshToonMaterial({
+    color: primParameters.materialColor,
+    // gradientMap: gradientTexture
+})
+
+
+// Meshes
+const mesh1 = new THREE.Mesh(
+    new THREE.TorusGeometry(1, 0.4, 16, 60),
+    meshMaterial
+)
+const mesh2 = new THREE.Mesh(
+    new THREE.ConeGeometry(1, 2, 32),
+    meshMaterial
+)
+const mesh3 = new THREE.Mesh(
+    new THREE.TorusKnotGeometry(0.8, 0.35, 100, 16),
+    meshMaterial
+)
+
+scrollScene.add(mesh1, mesh2, mesh3)
+
+const objectsDistance = 4
+
+mesh1.position.x = 2
+mesh2.position.x = - 2
+mesh3.position.x = 2
+
+mesh1.position.y = - objectsDistance * 0
+mesh2.position.y = - objectsDistance * 1
+mesh3.position.y = - objectsDistance * 2
+
+scrollScene.add(mesh1, mesh2, mesh3)
+
+const sectionMeshes = [mesh1, mesh2, mesh3]
+
+/**
+ * Lights
+ */
+const directionalLight = new THREE.DirectionalLight('#ffffff', 3)
+directionalLight.position.set(1, 1, 0)
+scrollScene.add(directionalLight)
+
+
 
 
 
@@ -133,12 +191,11 @@ galaxyFolder.add(parameters, 'randomnessPower').min(1).max(10).step(0.001).onFin
 galaxyFolder.addColor(parameters, 'insideColor').onFinishChange(generateGalaxy)
 galaxyFolder.addColor(parameters, 'outsideColor').onFinishChange(generateGalaxy)
 
-const primFolder = gui.addFolder('Folder for galaxy background');
-gui
+const primFolder = gui.addFolder('Folder for primitives');
+primFolder
     .addColor(primParameters, 'materialColor')
     .onChange(() => {
-        material.color.set(primParameters.materialColor)
-        particlesMaterial.color.set(primParameters.materialColor)
+        meshMaterial.color.set(primParameters.materialColor)
     })
 
 
@@ -164,44 +221,113 @@ window.addEventListener('resize', () => {
 
 
 // Camera
+const cameraGroup = new THREE.Group()
+scrollScene.add(cameraGroup)
+
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
 camera.position.x = 4
 camera.position.y = 1
 camera.position.z = 0
-scene.add(camera)
+
+cameraGroup.add(camera)
+
 
 
 // Controls
-// const controls = new OrbitControls(camera, canvas)
-// controls.enableDamping = true
+const controls = new OrbitControls(camera, canvas)
+controls.enableDamping = true
 // controls.enable = false
 
 // Renderer
 const renderer = new THREE.WebGLRenderer({
-    canvas: canvas
+    canvas: canvas,
+    alpha: false
+
 })
 
 renderer.setSize(sizes.width, sizes.height)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
-generateGalaxy()
+/**
+ * Scroll
+ */
+let scrollY = window.scrollY
+let currentSection = 0
+
+window.addEventListener('scroll', () => {
+    scrollY = window.scrollY
+    const newSection = Math.round(scrollY / sizes.height)
+
+    if (newSection != currentSection) {
+        currentSection = newSection
+        console.log('changed', currentSection)
+
+        gsap.to(
+            sectionMeshes[currentSection].rotation,
+            {
+                duration: 1.5,
+                ease: 'power2.inOut',
+                x: '+=6',
+                y: '+=3',
+                z: '+=1.5'
+            }
+        )
+    }
+})
+
+/**
+ * Cursor
+ */
+const cursor = {}
+cursor.x = 0
+cursor.y = 0
+
+window.addEventListener('mousemove', (event) => {
+    cursor.x = event.clientX / sizes.width - 0.5
+    cursor.y = event.clientY / sizes.height - 0.5
+})
+
+
 
 
 const clock = new THREE.Clock()
+let previousTime = 0
 
 const tick = () => {
     const elapsedTime = clock.getElapsedTime() + 300
-
     material.uniforms.uTime.value = elapsedTime
 
+    const deltaTime = elapsedTime - previousTime
+    previousTime = elapsedTime
+
+
+
+    // Animate camera
+    camera.position.y = - scrollY / sizes.height * objectsDistance
+
+    const parallaxX = cursor.x * 0.5
+    const parallaxY = - cursor.y * 0.5
+    cameraGroup.position.x += (parallaxX - cameraGroup.position.x) * 5 * deltaTime
+    cameraGroup.position.y += (parallaxY - cameraGroup.position.y) * 5 * deltaTime
+
+    // Animate meshes
+    for (const mesh of sectionMeshes) {
+        mesh.rotation.x += deltaTime * 0.1
+        mesh.rotation.y += deltaTime * 0.12
+    }
+
+
     // Update controls
-    // controls.update()
+    controls.update()
 
     // Render
-    renderer.render(scene, camera)
+
+    renderer.render(scrollScene, camera);
+    renderer.render(scene, camera);
+
 
     // Call tick again on the next frame
     window.requestAnimationFrame(tick)
 }
-
+generateGalaxy()
 tick()
