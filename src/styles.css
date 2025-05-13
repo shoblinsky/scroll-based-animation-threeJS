@@ -11,10 +11,11 @@
 
 body {
     font-family: 'Envy';
+    color: white;
 }
 
 .webgl {
-    position: fixed;
+    position: absolute;
     top: 0;
     left: 0;
     outline: none;
@@ -24,7 +25,25 @@ body {
     z-index: -1;
 }
 
-html,
+/* html,
 body {
     overflow: hidden;
+} */
+
+
+.section {
+    display: flex;
+    align-items: center;
+    height: 100vh;
+    position: relative;
+    font-family: 'Cabin', sans-serif;
+    color: #ffeded;
+    text-transform: uppercase;
+    font-size: 7vmin;
+    padding-left: 10%;
+    padding-right: 10%;
+}
+
+section:nth-child(odd) {
+    justify-content: flex-end;
 }
